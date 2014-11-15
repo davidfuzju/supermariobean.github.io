@@ -9,3 +9,9 @@ github_username:  supermariobean
 
 # Build settings
 markdown: kramdown
+
+# Comments settings
+comments: 
+  provider: duoshuo
+  duoshuo:
+    short_name: supermariobean
