@@ -1,0 +1,512 @@
+---
+layout: post
+category: Git
+---
+
+## 为什么是Git
+
+我用`Git`的主要原因有以下三点：
+
+  + `github`
+
+  + 分布式版本控制工具
+
+  + 极为轻量的`branch`
+
+  + 本地版本库
+
+  + 强大的功能集（这个说的有点泛，但似乎也找不到比较好的情况了）
+
+最初来公司，公司整体的版本控制环境是`SVN`和`.NET`集成开发环境中的`TFS`。`SVN`是没有本地版本库的，无法对自己的提交作进一步的修改和安排，另外加之重量级`branch`导致我根本没法自由的创建本地分支并做一些处理；`TFS`集成在`.NET`的开发环境之下，我本身是`iOS`开发者，在`Mac OS X`上工作，所以基本上没有使用的可能。所以我一直都是开发团队中的叛逆者，当所有人都在已有的环境中开发时，我在寻找各种可以使用Git的方法和契机。
+
+值得开心的是，先驱者们已经为我做了足够的探索，在实际的开发中我分别使用`git svn`和`git tf`作为`SVN`和`TFS`的前端，通过这两个命令与后端交互，前端仍旧可以使用`Git`的其他常用命令。
+
+所以，本文会首先介绍`git svn`和`git tf`与后端的基本操作，基本操作主要包括：
+
+  + 初始化一个本地代码库、克隆一个远程代码库到本地 `git init``git clone`
+
+  + 将本地代码库中提交推送到远程代码库 `git push`
+
+  + 将远程代码库更新到本地代码库 `git pull`
+
+然后会介绍一些我自己在工作中常用的`Git`命令及其使用场景，另外也包括一些命令使用的原则和约定。
+
+这不是一个`Git`基础教学文章，它需要一定的`Git`基础知识。
+
+## 正文
+
+### Git前端工具
+
++ `git svn`
+
+  `git svn`是`Git`命令集中专门用来和`SVN`后端交互的命令，如果你的机器中有`Git`，那么基本可以认为你的机器已经有`git svn`命令。
+
+  现在假设你的`SVN`代码库的http地址为
+
+      http:\\svn.dev.supermariobean.com/svn/svn_DB/Iphone/supermariobean_repo
+
+  实际上一个`SVN`除了这个还有自己相应的目录，如下:
+
+    + trunk/
+
+    + branches/
+
+    + tags/
+
+  而实际上，当一个`SVN`库转化为一个`Git`库的时候，有如下的转化：
+
+    + trunk/      --> `Git`中的master分支
+
+    + branches/   --> `Git`中的其他分支
+
+    + tags/       --> `Git`中的tag
+
+  当然这只是默认的约定目录，实际上你也可以不叫这个名字，比如在我的supermariobean_repo中，对应的目录名叫做：
+
+    + trunk/
+
+    + branch/
+
+    + release/
+
+  对应到基础操作中的`初始化一个本地代码库、克隆一个远程代码库到本地`的功能，命令如下：
+
+      git svn init --prefix=svn_origin -T trunk -b branch -t release http:\\svn.dev.supermariobean.com/svn/svn_DB/Iphone/supermariobean_repo
+
+  我想`-T`、`-b`、`-t`你应该已经看懂了，`--prefix`命令只是为了声明在`git remote`中的`SVN`的主机别名，这里建议声明一个与默认`remote`不一样的名字，这里声明为`svn_origin`。命令回车之后，会有一些简单的提示，之后就会初始化一个`Git`版本库，如下:
+
+      supermariobean_repo
+
+  `cd`进去，执行
+
+      git svn fetch -r 1559947:HEAD
+
+  这里的1559947是对应`SVN`库中的`revision id`，可以自由设置。由于`git svn`之后会将每一个`SVN revision`转化为`git commit`，所以这里尽量声明到比较近的历史提交版本，以节省时间。此命令回车后，就开始刷屏从`SVN`的远程代码库中向本地代码库中转化`Git`提交了。
+
+  至此`初始化一个本地代码库、克隆一个远程代码库到本地`结束。
+
+  当你有了一个本地的代码库后，`git svn`自动创建了本地的`master`分支跟踪了`svn_origin/master`，此时已经可以在`master`上面自由的修改代码，添加到索引后提交到本地`master`，提交后，就会出现本地提交领先远程提交，那么`将本地代码库中提交推送到远程代码库`的需求就来了。通过以下命令来完成:
+
+      git svn dcommit
+
+  这条命令简单的实现了曾经在单纯的`Git`代码库中`git push`的工作，当然也会出现远端代码库因为其他人的改动，而拒绝推送的情况，这个时候其实就是需要先更新本地代码库，再推送本地代码库的提交。
+
+  是的，`将本地代码库中提交推送到远程代码库`的需求也来了。
+
+  以往的情况下，我会使用命令`git fetch`先获取远程代码库中的其他改动，再通过`git rebase`将自己的提交“变基”到这个更新的远程提交之上，然后`git push`。而在`git svn`中，命令发生了一点点的改变:
+
+      git svn fetch
+      git svn rebase
+
+  我想不再需要我解释什么了吧？
+
+  至此，`将本地代码库中提交推送到远程代码库`和`将远程代码库更新到本地代码库`都介绍到了。
+
+  ***warning***
+
+  我想，其实聪明的同学已经想到了一个问题，既然我们可以通过`git svn`将一个`SVN`转化成一个`Git`库，但这还不够，我们是不是可以将这个`Git`库再导出到一个纯洁的`Git`仓库，然后让所有下游的团队成员都和这个纯洁的`Git`库打交道，然后当需要提交的时候，再通过这个`SVN`转化成的`Git`库统一提交团队成员的更改呢？这样不就减少了所有人执行有违和感的`git svn`命令的频率了么？
+
+  其实我确实这么干过，我通过添加一个基于`gitlab`的`remote`，创建如下的跟踪关系`master -> gitlab_origin/master`，定期将所有的改动跟新到`gitlab`中，当团队成员比较多，并且习惯于`git`工作流的话，确实可以极大地较少学习成本。但是有一个比较严重的问题，`git svn`最初设计的时候，对于`SVN`提交转换为`Git`提交的时候，`SVN`的`revision id`到`Git`的`hash code`不是一一唯一映射（关于这一点，我非常疑惑，因为按我的对`Git`的`hash code`算法理解来看，应该每一次映射都得到相同的值才对），这就意味着，一旦中间这个`Git`毁了，你没法通过`SVN`库重建一个一模一样的`Git`库回来，这就会导致整个整个流程走不下去。所以，目前来看，只能作为前端使用，因为坏了我重建就好了，因为没有下游所以也就不怕了。
+  当然如果你确实遇到拉取更新时报错远程和本地的提交树有冲突的话，你可以使用命令
+
+      git svn reset -r 144444
+
+  可以将`Git`库中的远程分支重置到某一个`revision id`，然后通过`git svn fetch`重新构建这个提交树。
+
++ `git tf`
+
+  `TFS`估计大家使用的并不多，强制转成`Git`库的需求估计也比较少，因为自己确实这么用过，所以就简单地说一下。因为`Git`默认没有相关命令集，所以需要安装
+
+      $ brew install git-tf
+
+  现在假设你在`TFS`中的如下结构中有代码库
+
+      tfs服务器地址: 192.168.83.70:8080
+      一级目录：supermariobean
+      二级目录：client/iOS/supermariobean_repo
+
+  + `初始化一个本地代码库、克隆一个远程代码库到本地`
+
+        git tf clone http://192.168.83.70:8080/tfs/supermariobean $/client/iOS/supermariobean_repo
+
+    命令完毕后就会创建一个名为`supermariobean_repo`的文件夹，此时代码库已经建立。
+
+  + `将本地代码库中提交推送到远程代码库`
+
+        git tf pull
+
+  + `将远程代码库更新到本地代码库`
+
+        git tf checkin
+
+### Git常用命令
+
++ `work directory`,`index`,`commit`之间的转化
+
+  暂时解释一下这三个概念：
+
+      work directory 工作区
+      index 暂存区
+      commit 提交树
+
+  关联这些状态的`Git`命令如下
+
+                        git add filename              git commit
+                    ----------------------->     ---------------------->
+      work directory                        index                       commit
+                    <-----------------------     <----------------------
+                    git checkout -- filename          git reset HEAD
+
+                  <--------------------------------------------------------
+                                      git reset HEAD filename
+
+  实质上是`Git`中的文件状态变化，如下
+
+      untracked     未跟踪  代表了未跟踪的文件，在工作区中出现
+      unmodified    未修改  代表了未修改的文件，在提交树中出现，工作区中出现
+      modified      修改    代表了修改的文件，在工作区出现
+      staged        已暂存  带便了已暂存的文件，在暂存区出现
+
+  关联这些状态的`Git`命令如下
+
+                git add filename                    edit file                      git add filename
+                -------------->            ------------------------>          ----------------------->
+      untracked                 unmodified                           modified                          staged
+                <--------------            <------------------------          <-----------------------
+                git rm filename             git checkout -- filename           git reset HEAD filename
+
+                                          <------------------------------------------------------------
+                                                                    git commit
+
+
++ `git stash`
+
+  这个命令是个比较基础的命令，我想大家都有感于这条命令的强大，这条命令的强大和设计模式中的单例模式的强大非常类似。它们的特色就是：
+
+  ***很多别的命令或者模式可以做的他也能做，你不能说他错，因为有的时候他甚至更简单，但是你也不能说他对，因为从根本上他就不应该滥用***
+
+  回想一下你是否做过一下的事情：
+
+      用stash保存一些拥有实际功能特性的代码；
+      用stash实现从一个branch将一部分的改动转移到另一个branch
+      用stash保存配置，在需要的时候加入
+
+  如果你还觉得没有错的话，回想一下我们滥用单例的时候，有了单例，我们可以全局获取这个单例类。我们将工具方法放入了这个单例类；我们将临时方法放入了这个单例类；突然加入了一个新功能，先放到这个单例类里面去吧。好了，最后我们得到了一个臃肿的单例类，而且你没法告诉任何人他的单一职责是什么。好了，这个时候stash也遇到了同样的问题，stash也变得臃肿，stash拥有的栈结构臃肿异常，你分不清那个应该删掉，那个应该留下，你更分不清代码内到底做了什么，因为stash的diff还停留在你曾经的提交，但很可能提交树早就被推进了。实际上更有可能是，你自己的电脑上有一个版本库的副本，是啊，`Git`有本地版本库，可以让我们在不连接服务器的情况下继续开发，遗憾的是stash栈结构是本地存储，你无法通过`git clone`获得你公司机器上面的stash栈结构中的数据，此刻，你才能了解滥用的悲剧
+
+
+  所以，我对stash的原则是：
+
+  ***stash只能作为临时存放工作区和暂存区的改动，stash的栈结构应该在一天工作结束后保持清空***
+
+  如果你需要保存配置，新建一个分支非常不错主意，这个配置分支可以通过`git rebase`变基到任何分支上，而且可以推送到服务器，通过clone获得副本；
+  如果你需要在不同的branch转移代码，我想提交后通过`git cherry-pick`更适合，因为每次提交你会考虑代码的相关性，从而使你的每次提交达到一个类似“高内聚低耦合”的效果，再通过`git cherry-pick`的方式转移，更安全，也会让你更有信心。
+
+  如果你需要保存一些拥有实际功能特性的代码，前面的branch很适合，另外`git format-patch`也非常适合，将特性通过补丁的方式文件化，通过邮件分发，同样是一件很轻松的事情。
+
+  总之，保持你的stash清洁，`Git`命令集合已经足够强大，`git stash`应该只是补充，而不是充当最重要的部分
+
++ `git fetch` `git rebase`
+
+  一般来说，这两个命令对应着另一个基础命令：`git push`，又因为`git push` = `git fetch` + `git merge`，所以这个标题本质上是`git rebase`和`git merge`之间的比较。
+
+  当然，`git fetch`也需要介绍，它主要是更新跟踪远程的引用，每当你执行这个命令的时候，如果远端有变化，那么你的`orgin/someBranch`就会推进。
+
+  实际上，遇到需要考虑`git merge`和`git rebase`的场景很简单，就是本地有提交，而远程也有改动的情况下，正常情况下我们的本地应该如下：
+
+
+      master  origin/master
+           \  /
+            C2
+            |
+            C1
+
+  当你有了自己的提交，本地分支`master`就会推进，于是有了：
+
+      master
+         \
+          C3  origin/master
+           \  /
+            C2
+            |
+            C1
+
+  又因为远程代码库有其他人员的更新，我们假设这个更新为`C4`，所以当你`git fetch`之后，就会是这样
+
+      master    origin/master
+         \      /
+          C3   C4
+           \  /
+            C2
+            |
+            C1
+
+  好了，现在出现了本地分支和跟踪的远程分支的推进不同的情况，如果你此时`git push`，服务端会告诉你当前推进不满足`fast-farword`模式，那么接下来我们看一下`git merge`和`git rebase`的区别
+
+  + `git merge`
+
+    合并操作会创建一个新的提交`C5`，这个新的提交有两个父提交`C3`、`C4`。如下图：
+
+        master
+             \
+              C5    origin/master
+             /  \  /
+            C3   C4
+             \  /
+              C2
+              |
+              C1
+
+    从图中可以看出带来了如下的改变:
+
+    + 增加了一个提交点`C4`
+
+    + 产生了一个非线性的提交路线
+
+    + 保留了本地提交`C3`的提交历史
+
+    再来看`git rebase`
+
+  + `git rebase`
+
+    变基（也叫衍合）操作会将本地提交从原有的父提交上取下来，然后和远程提交建立父子关系。如下图：
+
+        master
+             \
+              C3' origin/master
+               \ /
+                C4
+                |
+                C2
+                |
+                C1
+
+    从图中可以看出带来了如下的改变：
+
+    + 没有增加提交数量（实际上有新的提交产生，后面有解释）
+
+    + 产生了一个线性提交路线
+
+    + 丢弃了本地提交`C3`的提交历史，变基产生了新的`C3‘`提交历史
+
+    >这里判定`C3`和`C3'`之间的区别是通过`Git`的`hash code`，而不是其提交的内容，实际上变基后如果就提交内容来看，`C3`和`C3'`可能相同也可能不相同。
+
+  + 优缺比较
+
+    首先可以确定`git rebase`的两个优点
+
+    + 保证远程代码库的线性提交
+
+    + 减少提交数量
+
+    那么现在的问题就集中在`保留了本地提交C3的提交历史`和 `丢弃了本地提交C3的提交历史，变基产生了新的C3'提交历史`这个上面。首先要结合提交场景。假设`C3`的本地提交是你昨天的提交，`C4`的远程提交是某个用户在今天提交到服务器，假设这个用户的提交时间就是今天（后面你会发现其他也有提交时间的问题，当然，这里我们方便分析，直接就判定他的提交时间就是他推送到服务器的时间），如果你通过`git merge`合并后提交，你会发现你提交了两个提交：1、昨天提交的`C3`；2、今天提交的`C5`（合并提交）。推送后，服务器就多了两个提交，如下图
+
+            master
+                 \（今天，C4之后）
+                  C5    origin/master
+                 /  \  /
+        （昨天）C3   C4（今天）
+                 \  /
+                  C2
+                  |
+                  C1
+
+    如果你用`git rebase`变基来完成这个流程，你会发现是这样的：
+
+                  master
+                        \
+         （今天，C4之后）C3' origin/master
+                          \ /
+                          C4 (今天)
+                          |
+                          C2
+                          |
+                          C1    C3(昨天)[丢弃]
+
+    首先排除`保证远程代码库的线性提交`这条的影响，单独看其记录的时间。可以看到，`git rebase`提供的线性提交树不仅仅在形式上有序，在时间上也是一直有序的(说一直有序是因为，无论远程是否有改动，通过rebase，你都可以保证提交的线性以及时间的线性关系)，`git merge`实际上也提供了时间的有序，但他额外通过冗余的方式记录了额外的本地提交时间。
+    
+    ***在这里，以我的经验，对于单一功能的`branch`上的开发，`git rebase`模式更加有优势，线性的时间顺序，非常的清晰。***
+    
+    如此说来`git merge`一无是处？不是如此，实际上，对于不同功能分支之间的合并，`git merge`提供了良好的功能，很简单的例子就是，你希望你的feature分支始终通过分值的形式存在，而不是每次开发完毕变基到主干，这样既不好查询，也无法给你主观感受。
+
++ `git rebase -i`
+
+  再讲这一个命令之前，我首先要提一个问题，或者你也应该问问自己：
+
+  ***我是如何组织提交的？***
+
+  之所以这么问，因为我在工作过程中见到过非常多的提交方式，尤其是使用`SVN`作为自己的代码管理工具的开发人员，因为没有本地仓库的概念，大部分同学都把`SVN`作为一个代码暂存工具，只要有改动，我们就提交，而提交会被直接推送到服务器，于是你就见到了以下的各种奇葩提交：
+
+    一个简单的bugfix修复提交被人为地切割成三个部分，每部分命名为`bug修复1`，`bug修复2`，`bug修复3`
+    或者一次美术资源文件上传提交只提交了美术资源文件而没有提交相应的工程文件修改
+    再或者某个功能点的提交，其他开发者checkout到这个提交点后，发现功能只完成了一半，经过反复的定位，才发现另一部分的提交在一个提交日志根本搭不上边的提交里面
+
+  我想这些你都见过甚至自己也这么弄过，坑了自己也害了别人。
+
+  在`Git`下因为有了本地仓库，所以很多事情都变了简单多了，你可以在本地提交，对于本地的提交不满意，你可以简单地修改或者重新组织提交，直到最后推送到远程服务器。然而除去这些`Git`提供的功能，仍旧有许多我们自己需要遵守的原则：
+
+  + 每次提交都应该保证逻辑粒度和可回滚性
+  + 每次提交都应该标注提交可能需要的后期操作
+  + 提交在推送之前一定要重新查看日志，以确保其良好的逻辑粒度以及可回滚性
+  + 通过`git rebase -i`交互式调整这些提交
+  + 最终提交
+
+  在充分了解了这些原则之后，让我们开始介绍`git rebase -i`。首先看一下我们的如下的场景:
+
+      master
+      |
+      C8 3ddas （这个提交需要在C4之前）
+      |
+      C7 2ddd3 （这个提交需要分成两个提交）
+      |
+      C6 12dad （这个提交需要修改提交日志）
+      |
+      C5 21341 （这个提交需要合并到上一个提交）
+      |
+      C4 sadfe
+      |
+      C3 3gdkh （这个提交需要删除）
+      |
+      C2 2bbdd - origin/master
+      |
+      C1
+
+  看起来我们的工作还挺复杂，好吧，让我们开始：
+
+      git checkout master
+      git rebase -i 3gdkh^
+  
+  这个时候开始进行的一个操作就是将`master`分支上的提交基于`C2`的父提交（别告诉你不知道`^`的意思）重新变基一次，并且通过交互式的方式完成工作。如果没有问题，你会看到如下的界面:
+
+      pick 3gdkh C2
+      pick sadfe C4
+      pick 21341 C5
+      pick 12dad C6
+      pick 2ddd3 C7
+      pick 3ddas C8
+
+      # Rebase 2bbdd..3gdkh onto 2bbdd
+      #
+      # Commands:
+      #  p, pick = use commit
+      #  r, reword = use commit, but edit the commit message
+      #  e, edit = use commit, but stop for amending
+      #  s, squash = use commit, but meld into previous commit
+      #  f, fixup = like "squash", but discard this commit's log message
+      #  x, exec = run command (the rest of the line) using shell
+      #
+      # These lines can be re-ordered; they are executed from top to bottom.
+      #
+      # If you remove a line here THAT COMMIT WILL BE LOST.
+      #
+      # However, if you remove everything, the rebase will be aborted.
+      #
+      # Note that empty commits are commented out
+
+  其实到了这一步，有良好的注释提示。所以我们作出如下的改动
+
+      pick 3ddas C8
+      pick sadfe C4
+      squash 21341 C5
+      reword 12dad C6
+      edit 2ddd3 C7
+
+      # Rebase 2bbdd..3gdkh onto 2bbdd
+      #
+      # Commands:
+      #  p, pick = use commit
+      #  r, reword = use commit, but edit the commit message
+      #  e, edit = use commit, but stop for amending
+      #  s, squash = use commit, but meld into previous commit
+      #  f, fixup = like "squash", but discard this commit's log message
+      #  x, exec = run command (the rest of the line) using shell
+      #
+      # These lines can be re-ordered; they are executed from top to bottom.
+      #
+      # If you remove a line here THAT COMMIT WILL BE LOST.
+      #
+      # However, if you remove everything, the rebase will be aborted.
+      #
+      # Note that empty commits are commented out
+
+  你可以仔细对比后得出使用方法。保存退出后，`Git`开始自动为你应用你所做的改动。每次改动都会相应问询你的决定，只要一步一步来就可以解决。
+
+  这里就不详细讲解具体的应对方法了，非常简单。
+
+  某些修改，比如冲突解决，需要使用命令继续变基
+
+      git rebase --continue
+
+  如果你觉得有些不稳妥，可以直接终止
+
+      git rebase --abort
+
+  这个命令非常酷炫而且上手简单，仔细看一下编辑器中的注释即可获得提示
+
++ `git reflog`
+
+  这是一个非常imba的命令，之所以说imba，是因为这个命令我们通常都是最后才会请出来。
+
+  我记得最初学习`Git`的时候，`git reset`命令如果跟着`--hard`子命令会重置所有区域，包括工作区，暂存区和提交树，很多图形界面在你使用这个命令的时候，大多都会提示你，这是一个危险命令，问你是否要确定这样做，是啊，当时觉得吓尿了，这样是玩脱了就瞎了。当我了解到`git reflog`的时候的可怕。
+  假设我们有如下场景：
+
+      master
+      |
+      C4
+      |
+      C3
+      |
+      C2
+      |
+      C1
+
+  这里不标明`origin/master`分支，因为`git reflog`和`git stash`很类似，都是本地库行为，所以和远程分支没有关系。`git reflog`记录了本地版本库中`Git`命令执行完成后的所有的索引状态，是的，你没有看错，所有的索引状态。他就是一个时间机器，以你执行的命令作为时间轴，让你可以在这些执行命令的时间点之间穿梭。
+
+  执行命令:
+
+    git reset --hard master^^
+
+  得到如下:
+
+      master
+      |
+      C2
+      |
+      C1
+
+  好了，我们造成了曾经我们认为的无法回复的状态，即`C1`和`C2`永远消失了。好了，请出`git reflog`：
+
+      git reflog
+
+  我们会得到如下：
+
+      dsfasds HEAD@{0}: reset: moving to master^^
+      a44ccfb HEAD@{1}: rebase -i (start): checkout master^^^^
+      a44ccfb HEAD@{2}: rebase -i (finish): returning to refs/heads/master
+      a44ccfb HEAD@{3}: rebase -i (start): checkout master^
+      a44ccfb HEAD@{4}: reset: moving to a44ccfb1bd8ef0506ddce83d2d5694c7c74d2e7c
+      f5b774d HEAD@{5}: reset: moving to HEAD@{1}
+      a44ccfb HEAD@{6}: reset: moving to a44ccfb1bd8ef0506ddce83d2d5694c7c74d2e7c
+      f5b774d HEAD@{7}: commit: @feature 实现点击邀请发送编辑并发送SMS短信的功能
+      a44ccfb HEAD@{8}: commit: @maintain 增加gitignore文件
+      33fa2b6 HEAD@{9}: rebase finished: returning to refs/heads/master
+      33fa2b6 HEAD@{10}: rebase: checkout refs/remotes/origin/master
+
+  可以看到我们刚刚执行的命令`reset: moving to master^^`赫然在列，为了回到他之前的状态，所以我们用他之前的那个命令节点，对应的`git reflog`的`HEAD@{1}`，记住这个之后，退出这个界面，然后执行
+
+      git reset --hard HEAD@{1}
+
+  命令执行完毕后就会回复到`git reset --hard master^^`之前`git rebase -i`之后的状态，重新看提交树:
+
+      master
+      |
+      C4
+      |
+      C3
+      |
+      C2
+      |
+      C1
+
+  丢失的提交回来了。nice。
+
+  实际上，通过观察之前的`git reflog`，我们发现我们其实可以通过这个信息了解到很多事情，我们可以恢复到`git rebase -i`的交互式过程中的任意一个点，善加利用，我们可以解决很多新手解决不了的难题。但是和`git stash`一样，不要用他取代`Git`功能集即便他真的很好用。我们依旧应该遵照既有的原则。让`git reflog`成为补充，而不是全部。
