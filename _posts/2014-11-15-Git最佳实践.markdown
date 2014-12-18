@@ -43,7 +43,7 @@ category: Git
 
   现在假设你的`SVN`代码库的http地址为
 
-      http:\\svn.dev.supermariobean.com/svn/svn_DB/Iphone/supermariobean_repo
+      http://svn.dev.supermariobean.com/svn/svn_DB/Iphone/supermariobean_repo
 
   实际上一个`SVN`除了这个还有自己相应的目录，如下:
 
