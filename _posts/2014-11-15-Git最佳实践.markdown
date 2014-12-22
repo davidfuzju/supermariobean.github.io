@@ -71,7 +71,7 @@ category: Git
 
   对应到基础操作中的`初始化一个本地代码库、克隆一个远程代码库到本地`的功能，命令如下：
 
-      git svn init --prefix=svn_origin -T trunk -b branch -t release http:\\svn.dev.supermariobean.com/svn/svn_DB/Iphone/supermariobean_repo
+      git svn init --prefix=svn_origin -T trunk -b branch -t release http://svn.dev.supermariobean.com/svn/svn_DB/Iphone/supermariobean_repo
 
   我想`-T`、`-b`、`-t`你应该已经看懂了，`--prefix`命令只是为了声明在`git remote`中的`SVN`的主机别名，这里建议声明一个与默认`remote`不一样的名字，这里声明为`svn_origin`。命令回车之后，会有一些简单的提示，之后就会初始化一个`Git`版本库，如下:
 
