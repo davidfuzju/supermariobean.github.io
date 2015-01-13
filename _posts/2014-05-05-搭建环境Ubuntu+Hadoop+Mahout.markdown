@@ -1,6 +1,6 @@
 ---
 layout: post
-category: iOS
+category: 机器学习
 ---
 
 ##版本配置##

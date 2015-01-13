@@ -1,6 +1,6 @@
 ---
 layout: post
-category: Git
+category: iOS
 ---
 
 ## BUG
@@ -93,3 +93,5 @@ category: Git
     </browser>
 
   有关`browser`这个元素的解释链接在[MSDN](http://msdn.microsoft.com/en-us/library/ms228122(v=vs.85).aspx)。虽然题主的问题是基于form authentication，但是同样适用于cookieless session state的情况。最终可以解决这个BUG的原因可能是，.NET框架对于`Mozilla`的每一种Useragent(safari也是其中之一)都有相应的xml配置，但是由于UIWebView这种特殊的组件，导致了.NET对于其Useragent的默认处理，从服务端disable了其cookie的使用，这也就解释了为何在客户端设置cookie enable不起作用的原因。在.NET项目中设置`Mozilla`的默认cookie设置，也就开启了UIWebView对应Useragent的cookie功能，从而解决了这个问题。
+
+  解决问题后重新验证请求，发现请求Path中`/(F(vy2ebt45imfkmjjwboow3l55 ))/`的字段消失，请求返回正常。删除开启客户端cookie的代码，效果一样，说明客户端的UIWebView是默认开启cookie的，整个问题的核心是cookie的问题，关键是服务端对于不同浏览器useragent的默认处理行为导致了这次bug的产生。当然也要注意，当使用.NET `form authentication`时也会有相同情况出现。
