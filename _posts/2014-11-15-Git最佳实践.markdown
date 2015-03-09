@@ -463,7 +463,7 @@ category: Git
 
   执行命令:
 
-    git reset --hard master^^
+      git reset --hard master^^
 
   得到如下:
 
