@@ -14,6 +14,6 @@ markdown: kramdown
 
 # Comments settings
 comments: 
-  provider: duoshuo
-  duoshuo:
+  provider: disqus
+  disqus:
     short_name: supermariobean
